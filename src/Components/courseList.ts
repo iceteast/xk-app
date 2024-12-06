@@ -2,7 +2,7 @@ import {customElement, state} from "lit/decorators.js";
 import {css, html, LitElement} from "lit";
 import {map} from "lit/directives/map.js";
 import {classMap} from "lit/directives/class-map.js"
-import expend from "/expend.svg"
+import symbol from "/symbol.svg"
 import {
     clear, load, submit, formatCourse,
     courseNameRex, emailRex, semesterRex, userNameRex,
@@ -115,30 +115,26 @@ export class CourseList extends LitElement {
      */
     private help() {
         return html`
-            <div>
-                ${this.toggleHelp 
-                    ? html`<img @click="${this.toggle}" src="${expend}" alt="Icon">` 
-                    : html`<table class="fancy-table">
-                            <tr>
-                                <td><b>Course Name:</b></td>
-                                <td>e.g. NNTI, MMIA</td>
-                            </tr>
-                            <tr>
-                                <td><b>Semester:</b></td>
-                                <td>only current semester and next semester</td>
-                            </tr>
-                            <tr>
-                                <td><b>Name:</b></td>
-                                <td>4-12 letters or numbers no space</td>
-                            </tr>
-                            <tr>
-                                <td><b>Contact:</b></td>
-                                <td>email, teams, whatApp, usw... just add it after (at). e.g. 1703049910@whatApp.</td>
-                            </tr>
-                        </table>`}
-            </div>
+            <table ?hidden="${this.toggleHelp}" class="fancy-table">
+                <tr>
+                    <td><b>Course Name:</b></td>
+                    <td>e.g. NNTI, MMIA</td>
+                </tr>
+                <tr>
+                    <td><b>Semester:</b></td>
+                    <td>only current semester and next semester</td>
+                </tr>
+                <tr>
+                    <td><b>Name:</b></td>
+                    <td>4-12 letters or numbers no space</td>
+                </tr>
+                <tr>
+                    <td><b>Contact:</b></td>
+                    <td>email, teams, whatApp, usw... just add it after (at). e.g. 1703049910@whatApp.</td>
+                </tr>
+            </table>
         `
-    } //TODO refactor with the same behavior of contact.
+    }
 
     /**
      * register the item to the {@link this.toggleSet}.
@@ -194,49 +190,53 @@ export class CourseList extends LitElement {
     private cList() {
         return html`
             <table class="fancy-table">
-                <tr>
-                    <td><b>Course Name</b></td>
-                    <td style="width:20%"><b>User Name</b></td>
-                    <td style="width:30%"><b>Contact</b></td>
-                </tr>
-                <tr>
-                    <td>
-                        ${this.semesterMenu()}
-                        <input 
-                            class="${classMap({
-                                warn: this.checklist.has(CHECKITEM.COURSENAME), 
-                                name: true
-                            })}" 
-                            type="text" name="course"
-                            @input="${this.handleInput}"
-                            placeholder="Prog II"
-                        >
-                    </td>
-                    <td>
-                        <input
-                            class="${classMap({
-                                warn: this.checklist.has(CHECKITEM.USERNAME),
-                                name: true
-                            })}"
-                            type="text" name="username"
-                            @input="${this.handleInput}"
-                            placeholder="Jane Doe"
-                        >
-                    </td>
-                    <td>
-                        <input
-                            class="${classMap({
-                                warn: this.checklist.has(CHECKITEM.CONTACT),
-                                name: true
-                            })}"
-                            type="email" name="contact"
-                            @input="${this.handleInput}"
-                            placeholder="s9hornet@teams"
-                        >
-                        <button class="name" ?disabled="${!this.isValid()}" @click=${this.submit}>Submit</button>
-                    </td>
-                </tr>
-                ${this.cData()}
+                <thead>
+                    <tr>
+                        <th>Course Name</th>
+                        <th style="width:20%">User Name</th>
+                        <th style="width:30%">Contact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            ${this.semesterMenu()}
+                            <input 
+                                class="${classMap({
+                                    warn: this.checklist.has(CHECKITEM.COURSENAME),
+                                    name: true
+                                })}" 
+                                type="text" name="course"
+                                @input="${this.handleInput}"
+                                placeholder="Prog II"
+                            >
+                        </td>
+                        <td>
+                            <input
+                                class="${classMap({
+                                    warn: this.checklist.has(CHECKITEM.USERNAME),
+                                    name: true
+                                })}"
+                                type="text" name="username"
+                                @input="${this.handleInput}"
+                                placeholder="Jane Doe"
+                            >
+                        </td>
+                        <td>
+                            <input
+                                class="${classMap({
+                                    warn: this.checklist.has(CHECKITEM.CONTACT),
+                                    name: true
+                                })}"
+                                type="email" name="contact"
+                                @input="${this.handleInput}"
+                                placeholder="s9hornet@teams"
+                            >
+                            <button class="name" ?disabled="${!this.isValid()}" @click=${this.submit}>Submit</button>
+                        </td>
+                    </tr>
+                    ${this.cData()}
+                </tbody>
             </table>
             <div class="navigator">
                 <select name="limit" @change="${this.handleInput}">
@@ -350,7 +350,7 @@ export class CourseList extends LitElement {
     render() {
 
         return html`
-            <h1 class="title">Pinnwand fürs Group Suchen</h1>
+            <h1 class="title">Pinnwand fürs Group Suchen<img @click="${this.toggle}" src="${symbol}" alt="Icon"></h1>
             <div>${this.help()}</div>
             <div>${this.cList()}</div>
         `;
@@ -429,9 +429,8 @@ export class CourseList extends LitElement {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
-            //font-size: 18px;
             text-align: left;
-            background: linear-gradient(1deg, #ac85ff, #0085ff);
+            background: linear-gradient(0deg, #ac85ff, #0085ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
@@ -439,13 +438,14 @@ export class CourseList extends LitElement {
         .fancy-table th, .fancy-table td {
             border: 0 solid #dddddd;
         }
-
+        
         .fancy-table th {
-            background-color: #4CAF50;
+            color: white;
         }
-
+        
         .fancy-table tbody tr:hover {
-            background-color: rgba(173, 255, 0, 0.4);
+            text-shadow: 0 0 8px #ff8800, 0 0 12px #ff8800, 0 0 16px #ff8800;
+            transition: color 0.2s, text-shadow 0.2s;
         }
     `;
 }

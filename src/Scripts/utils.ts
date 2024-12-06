@@ -14,9 +14,9 @@ export interface Item {
     contact: string;
 }
 
-export const userNameRex: RegExp = /^[\p{L}0-9]{4,12}$/u;
-export const courseNameRex: RegExp = /^[\p{L}0-9 ]{2,30}$/u;
-export const emailRex: RegExp = /^[A-Za-z0-9]+@[A-Za-z0-9.-]+$/;
+export const userNameRex: RegExp = /^[\p{L}0-9._]{4,12}$/u;
+export const courseNameRex: RegExp = /^[\p{L}0-9 ._]{2,30}$/u;
+export const emailRex: RegExp = /^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+$/;
 export const semesterRex: RegExp = /^[0-9][0-9][WS]S$/;
 
 export function clear(item: Item) {
@@ -36,11 +36,25 @@ function valid(item: Item) {
     return semesterRex.test(item.semester);
 
 }
+export async function getAll() {
+    const url = new URL(APP_URL);
+    url.searchParams.append('sortBy', 'createdAt');
+    url.searchParams.append('order', 'desc');
 
-export async function load(page:number=1) {
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {'content-type': 'application/json'},
+    });
+
+    return response.json();
+}
+
+export async function load(page:number=1, limit:number=10) {
     const url = new URL(APP_URL);
     url.searchParams.append('page', String(page));
-    url.searchParams.append('limit', String(10));
+    url.searchParams.append('limit', String(limit));
+    url.searchParams.append('sortBy', 'createdAt');
+    url.searchParams.append('order', 'desc');
 
     const response = await fetch(url, {
         method: 'GET',
@@ -50,7 +64,7 @@ export async function load(page:number=1) {
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
-    return await response.json().then(json => json);
+    return await response.json();
 }
 
 export function submit(item: Item) {

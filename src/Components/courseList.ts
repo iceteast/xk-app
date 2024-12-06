@@ -3,44 +3,59 @@ import {css, html, LitElement} from "lit";
 import {map} from "lit/directives/map.js";
 import {classMap} from "lit/directives/class-map.js"
 import expend from "/expend.svg"
-import fold from "/unexpend.svg"
-
 import {
-    clear, load, submit,
+    clear, load, submit, formatCourse,
     courseNameRex, emailRex, semesterRex, userNameRex,
-    CHECKITEM, Item, formatCourse,
+    CHECKITEM, Item, getAll,
 } from "../Scripts/utils.ts";
 
 @customElement('my-course')
 export class CourseList extends LitElement {
-    @state() js: Array<Item> = [];
-    @state() checklist : Set<CHECKITEM> = new Set([
+    @state() js: Array<Item> = [];                          // json object from database
+    @state() checklist : Set<CHECKITEM> = new Set([         // check if all properties are valid
         CHECKITEM.SEMESTER,
         CHECKITEM.CONTACT,
         CHECKITEM.COURSENAME,
         CHECKITEM.USERNAME
     ]);
-    @state() toggleHelp : boolean = true;
+
+    @state() toggleHelp : boolean = true;                   // switch for help table
+    @state() page : number = 1;                             // current page of database
+    @state() limit : number = 10;                           // item limit per page
+
+    /**
+     * check if all properties are valid.
+     */
     @state() isValid = () => this.checklist.size == 0;
 
-    private data : Item = {contact:"", semester:"", courseName:"", userName:""};
+    private data : Item = {                                 // temporary json for submit
+        contact:"",
+        semester:"",
+        courseName:"",
+        userName:""
+    };
+    private toggleSet : Set<Item> = new Set();              // save the item which can be shown.
+    private count : number = 0;                             // storage the number of items
 
+    /**
+     * select element with pre-processing options.
+     */
     private semesterMenu = () => {
         let date = new Date();
-        let opt1: string
-        let opt2: string
+        let opt1: string;
+        let opt2: string;
 
-        let year = new Date().getFullYear() % 100
+        let year = new Date().getFullYear() % 100;
 
         if (date.getMonth() < 4) {
-            opt1 = (year - 1).toString() + 'WS'
-            opt2 = year.toString() + 'SS'
+            opt1 = (year - 1).toString() + 'WS';
+            opt2 = year.toString() + 'SS';
         } else if (date.getMonth() >= 4 && date.getMonth() < 10) {
-            opt1 = year.toString() + 'SS'
-            opt2 = year.toString() + 'WS'
+            opt1 = year.toString() + 'SS';
+            opt2 = year.toString() + 'WS';
         } else {
-            opt1 = year.toString() + 'WS'
-            opt2 = (year + 1).toString() + 'SS'
+            opt1 = year.toString() + 'WS';
+            opt2 = (year + 1).toString() + 'SS';
         }
 
         return html`
@@ -51,103 +66,103 @@ export class CourseList extends LitElement {
                 })}"
                 name="semester" @change="${this.handleInput}"
             >
-                <option value="0" selected>...</option>
+                <option value="10" selected>...</option>
                 <option value="${opt1}">${opt1}</option>
                 <option value="${opt2}">${opt2}</option>
             </select>
         `
     }
 
+    /**
+     * clear the temporary data and the UI inputs.
+     */
     private clear = () => {
         if (this.shadowRoot != null) {
             const inputs = this.shadowRoot.querySelectorAll('input');
             inputs.forEach(input => {
                 input.value = '';
             });
+
+            const selects = this.shadowRoot.querySelectorAll('select');
+            selects.forEach(select => {
+                select.value = '10';
+            })
         }
         clear(this.data)
     }
-
+    /**
+     * submit the data in form to database.
+     */
     private submit = async () => {
         console.log(this.data)
         if (this.isValid()) {
             submit(this.data)
             this.clear()
             await this.loadData();
+            await this.getCount();
         }
     }
-
+    /**
+     * click event function for help table.
+     */
     private toggle() {
         this.toggleHelp = !this.toggleHelp;
         this.requestUpdate();
     }
 
+    /**
+     * help table element.
+     */
     private help() {
         return html`
-            <table class="fancy-table">
-                <tr>
-                    <td><b>Course Name:</b></td>
-                    <td>e.g. NNTI, MMIA</td>
-                </tr>
-                <tr>
-                    <td><b>Semester:</b></td>
-                    <td>only current semester and next semester</td>
-                </tr>
-                <tr>
-                    <td><b>Name:</b></td>
-                    <td>4-12 letters or numbers no space</td>
-                </tr>
-                <tr>
-                    <td><b>Contact:</b></td>
-                    <td>email, teams, whatApp, usw... just add it after @. like 1703049910@whatApp.</td>
-                </tr>
-            </table>
-        `
-    }
-
-    private main() {
-        return html`
-            <div ?hidden="${this.toggleHelp}">${this.help()}</div>
-            <button class="toggle" @click="${this.toggle}"><img src="${this.toggleHelp ? expend : fold}" alt="Icon">
-                </button>
-            <div class="submitform">
-                Course Name:
-                    <input 
-                        class="${classMap({
-                            warn: this.checklist.has(CHECKITEM.COURSENAME),
-                            name: true
-                        })}"
-                        type="text" name="course" 
-                        @input="${this.handleInput}" 
-                        placeholder="Prog II"
-                    >
-                Semester:${this.semesterMenu()}<p></p>
-                Nick Name:
-                    <input 
-                        class="${classMap({
-                            warn: this.checklist.has(CHECKITEM.USERNAME),
-                            name: true
-                        })}"
-                        type="text" name="username"
-                        @input="${this.handleInput}"
-                        placeholder="Jane Doe"
-                    >
-                Contact:
-                    <input
-                        class="${classMap({
-                            warn: this.checklist.has(CHECKITEM.CONTACT),
-                            name: true
-                        })}"
-                        type="email" name="contact" 
-                        @input="${this.handleInput}" 
-                        placeholder="s9hornet@teams">
-                <button ?disabled="${!this.isValid()}" @click=${this.submit}>Submit</button>
+            <div>
+                ${this.toggleHelp 
+                    ? html`<img @click="${this.toggle}" src="${expend}" alt="Icon">` 
+                    : html`<table class="fancy-table">
+                            <tr>
+                                <td><b>Course Name:</b></td>
+                                <td>e.g. NNTI, MMIA</td>
+                            </tr>
+                            <tr>
+                                <td><b>Semester:</b></td>
+                                <td>only current semester and next semester</td>
+                            </tr>
+                            <tr>
+                                <td><b>Name:</b></td>
+                                <td>4-12 letters or numbers no space</td>
+                            </tr>
+                            <tr>
+                                <td><b>Contact:</b></td>
+                                <td>email, teams, whatApp, usw... just add it after (at). e.g. 1703049910@whatApp.</td>
+                            </tr>
+                        </table>`}
             </div>
         `
+    } //TODO refactor with the same behavior of contact.
+
+    /**
+     * register the item to the {@link this.toggleSet}.
+     */
+    private regContact(item: Item) {
+        this.toggleSet.add(item)
+        this.requestUpdate()
     }
+    /**
+     * if a contact need to be displayed.
+     */
+    private isHidden = (item: Item) => !this.toggleSet.has(item);
 
-
-
+    /**
+     * contact element, with a collapse feature.
+     */
+    private formatContact(item: Item) {
+        return html`
+            <span @click="${() => this.regContact(item)}"> ${this.isHidden(item) ? "<click to get the contact>" : item.contact}</span>
+        `
+    }
+    /**
+     * database header.
+     */
     private cData() {
         return html`
             ${map(
@@ -156,7 +171,7 @@ export class CourseList extends LitElement {
                             <tr>
                                 <td>${formatCourse(item)}</td>
                                 <td>${item.userName}</td>
-                                <td>${item.contact}</td>
+                                <td>${this.formatContact(item)}</td>
                             </tr>
                         `
                     }
@@ -164,24 +179,102 @@ export class CourseList extends LitElement {
         `
     }
 
+    private nextPage = async () => {
+        this.page = Math.min(this.page + 1, Math.ceil(this.count / this.limit));
+        await this.loadData();
+    }
+
+    private prevPage = async () => {
+        this.page = Math.max(this.page - 1, 1);
+        await this.loadData();
+    }
+    /**
+     * database context.
+     */
     private cList() {
         return html`
             <table class="fancy-table">
                 <tr>
                     <td><b>Course Name</b></td>
-                    <td><b>User Name</b></td>
-                    <td><b>Contact</b></td>
+                    <td style="width:20%"><b>User Name</b></td>
+                    <td style="width:30%"><b>Contact</b></td>
+                </tr>
+                <tr>
+                    <td>
+                        ${this.semesterMenu()}
+                        <input 
+                            class="${classMap({
+                                warn: this.checklist.has(CHECKITEM.COURSENAME), 
+                                name: true
+                            })}" 
+                            type="text" name="course"
+                            @input="${this.handleInput}"
+                            placeholder="Prog II"
+                        >
+                    </td>
+                    <td>
+                        <input
+                            class="${classMap({
+                                warn: this.checklist.has(CHECKITEM.USERNAME),
+                                name: true
+                            })}"
+                            type="text" name="username"
+                            @input="${this.handleInput}"
+                            placeholder="Jane Doe"
+                        >
+                    </td>
+                    <td>
+                        <input
+                            class="${classMap({
+                                warn: this.checklist.has(CHECKITEM.CONTACT),
+                                name: true
+                            })}"
+                            type="email" name="contact"
+                            @input="${this.handleInput}"
+                            placeholder="s9hornet@teams"
+                        >
+                        <button class="name" ?disabled="${!this.isValid()}" @click=${this.submit}>Submit</button>
+                    </td>
                 </tr>
                 ${this.cData()}
             </table>
-        ` // how to hide this by clicking?
+            <div class="navigator">
+                <select name="limit" @change="${this.handleInput}">
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+                <button 
+                        ?disabled="${this.page === 1}" 
+                        @click="${this.prevPage}"
+                >
+                    Prev
+                </button>
+                <button 
+                        ?disabled="${this.page >= Math.ceil(this.count / this.limit)}" 
+                        @click="${this.nextPage}"
+                >
+                    Next
+                </button>
+            </div>
+        `
     }
+    //TODO we do table not right.
 
-    handleInput(event: Event) {
+    /**
+     * handle input and select message.
+     */
+    async handleInput(event: Event) {
         const input = event.target as HTMLInputElement;
         const name = input.name;
         const value = input.value;
         switch (name) {
+            case "limit": {
+                this.limit = Number(input.value);
+                this.page = 1; //Set page to 1.
+                await this.loadData();
+                break;
+            }
             case "semester": {
                 this.checklist = new Set(this.checklist);
                 if (semesterRex.test(value)) {
@@ -225,9 +318,24 @@ export class CourseList extends LitElement {
             default: break;
         }
     }
+    /**
+     * calculate the total number of data.
+     */
+    private async getCount() {
+        try {
+            const data = await getAll();
+            this.count = data.length;
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+    /**
+     * (re)load the data from database.
+     */
     private async loadData() {
         try {
-            this.js = await load();
+            this.js = await load(this.page, this.limit);
+            this.toggleSet.clear();
         } catch (error) {
             console.error('Error fetching data:', error);
         }
@@ -235,6 +343,7 @@ export class CourseList extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
+        await this.getCount();
         await this.loadData();
     }
 
@@ -242,7 +351,7 @@ export class CourseList extends LitElement {
 
         return html`
             <h1 class="title">Pinnwand fürs Group Suchen</h1>
-            <div>${this.main()}</div>
+            <div>${this.help()}</div>
             <div>${this.cList()}</div>
         `;
     }
@@ -264,10 +373,13 @@ export class CourseList extends LitElement {
             font-size: 3rem;
             width: 100%;
             text-align: center;
+            background: linear-gradient(1deg, #acff00, #0085ff, #9000cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        
+
         /* toggle button */
-        
+
         .toggle {
             aspect-ratio: 25;
             width: 100%;
@@ -279,53 +391,53 @@ export class CourseList extends LitElement {
             justify-content: center;
             cursor: pointer;
             transition: border-color 0.25s;
-            
         }
-        
+
         .toggle:hover {
             background-color: #135151;
             opacity: 0.94;
         }
-        
+
         /* highlight invalid element*/
-        .submitform {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
+        
         .name {
-            width: 30%;
             max-width: 11rem;
-            flex: 0 1 auto; 
-            //padding: 5px;
+            flex: 0 1 auto;
+            -webkit-text-fill-color: initial;
         }
+
         .select {
-            width: 10%;
+            width: 13%;
             max-width: 4rem;
             flex: 0 1 auto;
-            //padding: 5px;
+            -webkit-text-fill-color: initial;
         }
-        
+
         .warn {
-            border-color: red;
+            border-color: #9e0000;
             border-width: 2px;
         }
-        
-        /* a fancy leaderboard */
+
+        .navigator {
+            text-align: right;
+        }
+
+
+        /* a fancy table */
 
         .fancy-table {
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
             //font-size: 18px;
-            text-align: center;
-            background: linear-gradient(90deg, #ff9a9e, #fad0c4, #fad0c4, #fbc2eb, #a18cd1);
+            text-align: left;
+            background: linear-gradient(1deg, #ac85ff, #0085ff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .fancy-table th, .fancy-table td {
-            border: 1px solid #dddddd;
+            border: 0 solid #dddddd;
         }
 
         .fancy-table th {
@@ -333,7 +445,7 @@ export class CourseList extends LitElement {
         }
 
         .fancy-table tbody tr:hover {
-            background-color: rgba(8, 138, 91, 0.4);
+            background-color: rgba(173, 255, 0, 0.4);
         }
     `;
 }

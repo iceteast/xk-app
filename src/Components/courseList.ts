@@ -1,140 +1,85 @@
 import {customElement, state} from "lit/decorators.js";
-import {css, html, LitElement} from "lit";
-import {map} from "lit/directives/map.js";
-import {classMap} from "lit/directives/class-map.js"
-import symbol from "/symbol.svg"
+import {css, html, LitElement, TemplateResult} from "lit";
+import submit_svg from "/add.svg"
 import {
-    clear, load, submit, formatCourse,
-    courseNameRex, emailRex, semesterRex, userNameRex,
-    CHECKITEM, Item, getAll,
+    load, getAll, formatCourse,
+    Item,
 } from "../Scripts/utils.ts";
+import {map} from "lit/directives/map.js";
 
 @customElement('my-course')
 export class CourseList extends LitElement {
     @state() js: Array<Item> = [];                          // json object from database
-    @state() checklist : Set<CHECKITEM> = new Set([         // check if all properties are valid
-        CHECKITEM.SEMESTER,
-        CHECKITEM.CONTACT,
-        CHECKITEM.COURSENAME,
-        CHECKITEM.USERNAME
-    ]);
-
-    @state() toggleHelp : boolean = true;                   // switch for help table
     @state() page : number = 1;                             // current page of database
     @state() limit : number = 10;                           // item limit per page
+    @state() view : string = "list"                         // default view is list
 
-    /**
-     * check if all properties are valid.
-     */
-    @state() isValid = () => this.checklist.size == 0;
-
-    private data : Item = {                                 // temporary json for submit
-        contact:"",
-        semester:"",
-        courseName:"",
-        userName:"",
-        createdAt:0,
-    };
-    private toggleSet : Set<Item> = new Set();              // save the item which can be shown.
+    public toggleSet : Set<Item> = new Set();              // save the item which can be shown.
     private count : number = 0;                             // storage the number of items
 
     /**
-     * select element with pre-processing options.
+     * display data in list view.
      */
-    private semesterMenu = () => {
-        let date = new Date();
-        let opt1: string;
-        let opt2: string;
-
-        let year = new Date().getFullYear() % 100;
-
-        if (date.getMonth() < 4) {
-            opt1 = (year - 1).toString() + 'WS';
-            opt2 = year.toString() + 'SS';
-        } else if (date.getMonth() >= 4 && date.getMonth() < 10) {
-            opt1 = year.toString() + 'SS';
-            opt2 = year.toString() + 'WS';
-        } else {
-            opt1 = year.toString() + 'WS';
-            opt2 = (year + 1).toString() + 'SS';
-        }
-
+    listDisplay(): TemplateResult<1> {
         return html`
-            <select
-                class="${classMap({
-                    warn: this.checklist.has(CHECKITEM.SEMESTER),
-                    select: true
-                })}"
-                name="semester" @change="${this.handleInput}"
-            >
-                <option value="10" selected>...</option>
-                <option value="${opt1}">${opt1}</option>
-                <option value="${opt2}">${opt2}</option>
-            </select>
+            <table class="fancy-table">
+                <thead>
+                    <tr>
+                        <th>Course Name</th>
+                        <th style="width:20%">User Name</th>
+                        <th style="width:30%">Contact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${map(
+            this.js, (item) => {
+                return html`
+                                <tr>
+                                    <td>${formatCourse(item)}</td>
+                                    <td>${item.userName}</td>
+                                    <td>${this.formatContact(item)}</td>
+                                </tr>
+                            `
+            }
+        )}
+                </tbody>
+            </table>
         `
     }
 
     /**
-     * clear the temporary data and the UI inputs.
+     * display data in grid view.
      */
-    private clear = () => {
-        if (this.shadowRoot != null) {
-            const inputs = this.shadowRoot.querySelectorAll('input');
-            inputs.forEach(input => {
-                input.value = '';
-            });
-
-            const selects = this.shadowRoot.querySelectorAll('select');
-            selects.forEach(select => {
-                select.value = '10';
-            })
-        }
-        clear(this.data)
-    }
-    /**
-     * submit the data in form to database.
-     */
-    private submit = async () => {
-        this.data.createdAt = Date.now();
-        console.log(this.data)
-        if (this.isValid()) {
-            submit(this.data)
-            this.clear()
-            await this.loadData();
-            await this.getCount();
-        }
-    }
-    /**
-     * click event function for help table.
-     */
-    private toggle() {
-        this.toggleHelp = !this.toggleHelp;
-        this.requestUpdate();
-    }
-
-    /**
-     * help table element.
-     */
-    private help() {
+    gridDisplay() {
         return html`
-            <table ?hidden="${this.toggleHelp}" class="fancy-table">
-                <tr>
-                    <td><b>Course Name:</b></td>
-                    <td>e.g. NNTI, MMIA</td>
-                </tr>
-                <tr>
-                    <td><b>Semester:</b></td>
-                    <td>only current semester and next semester</td>
-                </tr>
-                <tr>
-                    <td><b>Name:</b></td>
-                    <td>4-12 letters or numbers no space</td>
-                </tr>
-                <tr>
-                    <td><b>Contact:</b></td>
-                    <td>email, teams, whatApp, usw... just add it after (at). e.g. 1703049910@whatApp.</td>
-                </tr>
-            </table>
+            <div>
+                ${map(
+            this.js, (item) => {
+                return html`
+                            <div class="block">
+                                <div class="blockT">${formatCourse(item)}</div>
+                                <div class="blockU">${item.userName}</div>
+                                <div class="blockC">${this.formatContact(item)}</div>
+                            </div>
+                        `
+            }
+        )}
+            </div>
+        `
+    }
+
+    /**
+     * contact element, with a collapse feature.
+     */
+    public formatContact(
+        item: Item
+    ) {
+        return html`
+            <span 
+                @click="${() => this.regContact(item)}"
+            > 
+                ${this.isHidden(item) ? "<click to get the contact>" : item.contact}
+            </span>
         `
     }
 
@@ -150,32 +95,6 @@ export class CourseList extends LitElement {
      */
     private isHidden = (item: Item) => !this.toggleSet.has(item);
 
-    /**
-     * contact element, with a collapse feature.
-     */
-    private formatContact(item: Item) {
-        return html`
-            <span @click="${() => this.regContact(item)}"> ${this.isHidden(item) ? "<click to get the contact>" : item.contact}</span>
-        `
-    }
-    /**
-     * database header.
-     */
-    private cData() {
-        return html`
-            ${map(
-                    this.js, (item) => {
-                        return html`
-                            <tr>
-                                <td>${formatCourse(item)}</td>
-                                <td>${item.userName}</td>
-                                <td>${this.formatContact(item)}</td>
-                            </tr>
-                        `
-                    }
-            )}
-        `
-    }
 
     private nextPage = async () => {
         this.page = Math.min(this.page + 1, Math.ceil(this.count / this.limit));
@@ -189,57 +108,9 @@ export class CourseList extends LitElement {
     /**
      * database context.
      */
-    private cList() {
+    private dataView() {
         return html`
-            <table class="fancy-table">
-                <thead>
-                    <tr>
-                        <th>Course Name</th>
-                        <th style="width:20%">User Name</th>
-                        <th style="width:30%">Contact</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>
-                            ${this.semesterMenu()}
-                            <input 
-                                class="${classMap({
-                                    warn: this.checklist.has(CHECKITEM.COURSENAME),
-                                    name: true
-                                })}" 
-                                type="text" name="course"
-                                @input="${this.handleInput}"
-                                placeholder="Prog II"
-                            >
-                        </td>
-                        <td>
-                            <input
-                                class="${classMap({
-                                    warn: this.checklist.has(CHECKITEM.USERNAME),
-                                    name: true
-                                })}"
-                                type="text" name="username"
-                                @input="${this.handleInput}"
-                                placeholder="Jane Doe"
-                            >
-                        </td>
-                        <td>
-                            <input
-                                class="${classMap({
-                                    warn: this.checklist.has(CHECKITEM.CONTACT),
-                                    name: true
-                                })}"
-                                type="email" name="contact"
-                                @input="${this.handleInput}"
-                                placeholder="s9hornet@teams"
-                            >
-                            <button class="name" ?disabled="${!this.isValid()}" @click=${this.submit}>Submit</button>
-                        </td>
-                    </tr>
-                    ${this.cData()}
-                </tbody>
-            </table>
+            ${this.view === "list" ? this.listDisplay() : this.gridDisplay()}
             <div class="navigator">
                 <select name="limit" @change="${this.handleInput}">
                     <option value="10" selected>10</option>
@@ -261,7 +132,6 @@ export class CourseList extends LitElement {
             </div>
         `
     }
-    //TODO we do table not right.
 
     /**
      * handle input and select message.
@@ -272,54 +142,19 @@ export class CourseList extends LitElement {
         const value = input.value;
         switch (name) {
             case "limit": {
-                this.limit = Number(input.value);
+                this.limit = Number(value);
                 this.page = 1; //Set page to 1.
                 await this.loadData();
                 break;
             }
-            case "semester": {
-                this.checklist = new Set(this.checklist);
-                if (semesterRex.test(value)) {
-                    this.checklist.delete(CHECKITEM.SEMESTER)
-                    this.data.semester = value;
-                } else {
-                    this.checklist.add(CHECKITEM.SEMESTER);
-                }
-                break;
-            }
-            case "course": {
-                this.checklist = new Set(this.checklist);
-                if (courseNameRex.test(value)) {
-                    this.checklist.delete(CHECKITEM.COURSENAME);
-                    this.data.courseName = value;
-                } else {
-                    this.checklist.add(CHECKITEM.COURSENAME);
-                }
-                break;
-            }
-            case "username": {
-                this.checklist = new Set(this.checklist);
-                if (userNameRex.test(value)) {
-                    this.checklist.delete(CHECKITEM.USERNAME);
-                    this.data.userName = value;
-                } else {
-                    this.checklist.add(CHECKITEM.USERNAME);
-                }
-                break;
-            }
-            case "contact": {
-                this.checklist = new Set(this.checklist);
-                if (emailRex.test(value)) {
-                    this.checklist.delete(CHECKITEM.CONTACT);
-                    this.data.contact = value;
-                } else {
-                    this.checklist.add(CHECKITEM.CONTACT);
-                }
+            case "view": {
+                this.view = value;
                 break;
             }
             default: break;
         }
     }
+
     /**
      * calculate the total number of data.
      */
@@ -345,16 +180,42 @@ export class CourseList extends LitElement {
 
     async connectedCallback() {
         super.connectedCallback();
-        await this.getCount();
         await this.loadData();
+        await this.getCount();
     }
 
     render() {
 
         return html`
-            <h1 class="title">Pinnwand fürs Group Suchen<img @click="${this.toggle}" src="${symbol}" alt="Icon"></h1>
-            <div>${this.help()}</div>
-            <div>${this.cList()}</div>
+            <h1 class="title">
+                Pinnwand fürs Group Suchen
+                <a href="/submit">
+                    <img src="${submit_svg}" alt="Icon" width="30px" height="30px">
+                </a>
+            </h1>
+            <div class="navigator">
+                <label>
+                    <input
+                            type="radio"
+                            name="view"
+                            value="list"
+                            @change="${this.handleInput}"
+                            ?checked="${this.view === 'list'}"
+                    />
+                    List
+                </label>
+                <label>
+                    <input
+                            type="radio"
+                            name="view"
+                            value="grid"
+                            @change="${this.handleInput}"
+                            ?checked="${this.view === 'grid'}"
+                    />
+                    Grid
+                </label>
+            </div>
+            <div>${this.dataView()}</div>
         `;
     }
 
@@ -448,6 +309,40 @@ export class CourseList extends LitElement {
         .fancy-table tbody tr:hover {
             text-shadow: 0 0 8px #ff8800, 0 0 12px #ff8800, 0 0 16px #ff8800;
             transition: color 0.2s, text-shadow 0.2s;
+        }
+        
+        /* block */
+        
+        .block {
+            aspect-ratio: 1;
+            width: 17%;
+            height: auto;
+            color: #dddddd;
+            background: linear-gradient(0deg, #ac85ff, #0085ff);
+            border-radius: 0.5vw;
+            border: 1px solid antiquewhite;
+            justify-content: center;
+            cursor: pointer;
+            transition: border-color 0.25s;
+        }
+
+        .block:hover {
+            background-color: #d9b611;
+            opacity: 0.74;
+        }
+
+        .block:focus,
+        .block:focus-visible {
+            outline: 2px auto -webkit-focus-ring-color;
+        }
+
+        .blockT,
+        .blockU {
+            font-size: clamp(6px, 1.7vw, 14px); /* 设置字体大小的上下限 */
+            padding-bottom: 1vw;
+            line-height: 1.2; /* 设置行高 */
+            overflow: hidden; /* 超出部分隐藏 */
+            text-overflow: ellipsis; /* 超出显示省略号 */
         }
     `;
 }

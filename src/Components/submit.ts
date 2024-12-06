@@ -133,7 +133,7 @@ export class Submit extends LitElement {
         }
         clear(this.data)
     }
-
+    private return = () => window.location.href = "/";
     private input = () => {
         return html`
             <table class="fancy-table">
@@ -182,8 +182,11 @@ export class Submit extends LitElement {
                 </tr>
                 <tr>
                     <td/>
-                    <td><button class="button" ?disabled="${!this.isValid()}" @click=${this.submit}>Submit</button>
-                        <button class="button" @click=${this.clear}>Reset</button></td>
+                    <td>
+                        <button class="button" ?disabled="${!this.isValid()}" @click=${this.submit}>Submit</button>
+                        <button class="button" @click=${this.clear}>Reset</button>
+                        <button class="button" @click=${this.return}>Return</button>
+                    </td>
                 </tr>
             </table>
         `
@@ -289,12 +292,26 @@ export class Submit extends LitElement {
             -webkit-text-fill-color: initial;
         }
         .button {
+            aspect-ratio: 3;
             width: 23%;
             max-width: 65px;
             min-width: 15px;
-            flex: 0 1 auto;
+            height: auto;
+            background: linear-gradient(0deg, rgba(12, 234, 15, 0.2), rgba(12, 34, 215, 0.2));
+            border-radius: 1vw;
+            justify-content: center;
+            cursor: pointer;
             -webkit-text-fill-color: initial;
         }
+        button:disabled:hover {
+            box-shadow: initial;
+        }
+        
+        .button:hover {
+            box-shadow: 0 0 8px #ff8800, 0 0 12px #ff8800, 0 0 16px #ff8800;
+            transition: color 0.2s, text-shadow 0.2s;
+        }
+        
         .select {
             width: 20%;
             max-width: 65px;

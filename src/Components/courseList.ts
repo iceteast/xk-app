@@ -13,9 +13,10 @@ export class CourseList extends LitElement {
     @state() page : number = 1;                             // current page of database
     @state() limit : number = 10;                           // item limit per page
     @state() view : string = "list"                         // default view is list
+    @state() count : number = 0;                             // storage the number of items
 
     public toggleSet : Set<Item> = new Set();              // save the item which can be shown.
-    private count : number = 0;                             // storage the number of items
+
 
     /**
      * display data in list view.
@@ -52,7 +53,7 @@ export class CourseList extends LitElement {
      */
     gridDisplay() {
         return html`
-            <div>
+            <div class="grid">
                 ${map(
             this.js, (item) => {
                 return html`
@@ -241,46 +242,8 @@ export class CourseList extends LitElement {
             -webkit-text-fill-color: transparent;
         }
 
-        /* toggle button */
-
-        .toggle {
-            aspect-ratio: 25;
-            width: 100%;
-            color: #dddddd;
-            background-color: #242424;
-            font-size: 0.7vw;
-            max-font-size: 4px;
-            border: 1px solid #353535;
-            justify-content: center;
-            cursor: pointer;
-            transition: border-color 0.25s;
-        }
-
-        .toggle:hover {
-            background-color: #135151;
-            opacity: 0.94;
-        }
-
-        /* highlight invalid element*/
+        /* align right */
         
-        .name {
-            max-width: 11rem;
-            flex: 0 1 auto;
-            -webkit-text-fill-color: initial;
-        }
-
-        .select {
-            width: 13%;
-            max-width: 4rem;
-            flex: 0 1 auto;
-            -webkit-text-fill-color: initial;
-        }
-
-        .warn {
-            border-color: #9e0000;
-            border-width: 2px;
-        }
-
         .navigator {
             text-align: right;
         }
@@ -312,23 +275,28 @@ export class CourseList extends LitElement {
         }
         
         /* block */
-        
+        .grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center; 
+            gap: 1vw;
+            margin: 5px auto;
+            max-width: 700px;
+        }
         .block {
-            aspect-ratio: 1;
-            width: 17%;
+            aspect-ratio: 3;
+            width: 40%;
             height: auto;
             color: #dddddd;
             background: linear-gradient(0deg, #ac85ff, #0085ff);
             border-radius: 0.5vw;
-            border: 1px solid antiquewhite;
             justify-content: center;
             cursor: pointer;
-            transition: border-color 0.25s;
+            transition: background 0.25s;
         }
 
         .block:hover {
-            background-color: #d9b611;
-            opacity: 0.74;
+            background: linear-gradient(0deg, #0085ff, #ac85ff);
         }
 
         .block:focus,
@@ -336,13 +304,14 @@ export class CourseList extends LitElement {
             outline: 2px auto -webkit-focus-ring-color;
         }
 
-        .blockT,
-        .blockU {
-            font-size: clamp(6px, 1.7vw, 14px); /* 设置字体大小的上下限 */
+        .blockT {
+            font-size: clamp(6px, 1.7vw, 20px); 
             padding-bottom: 1vw;
-            line-height: 1.2; /* 设置行高 */
-            overflow: hidden; /* 超出部分隐藏 */
-            text-overflow: ellipsis; /* 超出显示省略号 */
+            line-height: 1.2;
+        }
+        .blockU {
+            font-size: clamp(6px, 1.7vw, 17px);
+            padding-bottom: 1vw;
         }
     `;
 }

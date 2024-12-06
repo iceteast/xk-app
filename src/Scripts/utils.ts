@@ -20,7 +20,7 @@ export function formatCourse(item: Item) {
 }
 
 export const userNameRex: RegExp = /^[\p{L}0-9._]{4,12}$/u;
-export const courseNameRex: RegExp = /^[\p{L}0-9 ._]{2,30}$/u;
+export const courseNameRex: RegExp = /^[\p{L}0-9 ._]{2,24}$/u;
 export const emailRex: RegExp = /^[A-Za-z0-9._-]+@[A-Za-z0-9._-]+$/;
 export const semesterRex: RegExp = /^[0-9][0-9][WS]S$/;
 

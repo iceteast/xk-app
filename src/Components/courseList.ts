@@ -32,7 +32,8 @@ export class CourseList extends LitElement {
         contact:"",
         semester:"",
         courseName:"",
-        userName:""
+        userName:"",
+        createdAt:0,
     };
     private toggleSet : Set<Item> = new Set();              // save the item which can be shown.
     private count : number = 0;                             // storage the number of items
@@ -94,6 +95,7 @@ export class CourseList extends LitElement {
      * submit the data in form to database.
      */
     private submit = async () => {
+        this.data.createdAt = Date.now();
         console.log(this.data)
         if (this.isValid()) {
             submit(this.data)

@@ -12,6 +12,7 @@ export interface Item {
     semester: string;
     userName: string;
     contact: string;
+    createdAt: number;
 }
 
 export const userNameRex: RegExp = /^[\p{L}0-9._]{4,12}$/u;
@@ -38,8 +39,6 @@ function valid(item: Item) {
 }
 export async function getAll() {
     const url = new URL(APP_URL);
-    url.searchParams.append('sortBy', 'createdAt');
-    url.searchParams.append('order', 'desc');
 
     const response = await fetch(url, {
         method: 'GET',

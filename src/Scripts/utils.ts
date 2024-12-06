@@ -1,3 +1,5 @@
+const APP_URL = 'https://' + import.meta.env.VITE_API_KEY + '.mockapi.io/api/' + import.meta.env.VITE_API_FOLDER
+
 export enum CHECKITEM {
     COURSENAME,
     USERNAME,
@@ -36,7 +38,7 @@ function valid(item: Item) {
 }
 
 export async function load(page:number=1) {
-    const url = new URL('https://6751e8cbd1983b9597b4c902.mockapi.io/api/xk/course');
+    const url = new URL(APP_URL);
     url.searchParams.append('page', String(page));
     url.searchParams.append('limit', String(10));
 
@@ -57,7 +59,7 @@ export function submit(item: Item) {
         return false;
     }
 
-    fetch('https://6751e8cbd1983b9597b4c902.mockapi.io/api/xk/course', {
+    fetch(APP_URL, {
         method: 'POST',
         headers: {'content-type':'application/json'},
         body: JSON.stringify(item)
